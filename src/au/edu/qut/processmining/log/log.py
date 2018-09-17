@@ -1,3 +1,7 @@
+"""
+Contains translations of LogParser.java, SimpleLog.java, graph/LogEdge.java,
+and graph/LogNode.java
+"""
 import uuid
 
 
@@ -79,6 +83,30 @@ class LogNode(object):
             return self.id == o.id
         else:
             return False
+
+
+class SimpleLog(object):
+
+    def __init__(self, traces, events, xlog):
+        self.events = events
+        self.traces = traces
+        self.size = sum(trace_freq for trace_freq in traces.values())
+        self.xlog = xlog
+        self.total_events = -1
+        self.longest_trace = -1
+        self.shortest_trace = -1
+
+    @property
+    def distintic_traces(self):
+        return len(self.traces)
+
+    @property
+    def distintic_events(self):
+        return len(self.traces) - 2
+
+    @property
+    def avg_trace_length(self):
+        return self.total_events / self.size
 
 
 class LogParser(object):
