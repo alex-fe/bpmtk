@@ -13,15 +13,6 @@ class LogEdge(object):
         self.target = kwargs.get('target')
         self.label = kwargs.get('label')
 
-    @property
-    def source_code(self):
-        # TODO: figure out what getCode does
-        return self.source.code
-
-    @property
-    def target_code(self):
-        return self.target.code
-
     def __eq__(self, o):
         if isinstance(o, LogEdge):
             return self.id == o.id
