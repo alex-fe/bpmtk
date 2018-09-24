@@ -7,10 +7,10 @@ import uuid
 
 class LogEdge(object):
 
-    def __init__(self, **kwargs):
+    def __init__(self, source, target, **kwargs):
         self.id = str(uuid.uuid4())
-        self.source = kwargs.get('source')
-        self.target = kwargs.get('target')
+        self.source = source
+        self.target = target
         self.label = kwargs.get('label')
 
     def __eq__(self, o):
@@ -22,14 +22,14 @@ class LogEdge(object):
 
 class LogNode(object):
 
-    def __init__(self, **kwargs):
-        self.id = kwargs.get('code', str(uuid.uuid4()))
+    def __init__(self, label=None, code=None):
+        self.id = str(uuid.uuid4()) if code is None else str(code)
         # TODO: Check if it supposed to be string null or None
         self.frequency = 0
         self.start_frequency = 0
         self.end_frequency = 0
-        self.label = kwargs.get('label', "null")
-        self.code = kwargs.get('code')
+        self.label = label
+        self.code = code
 
     def increase_frequency(self, amount=1):
         """Increase the frequency by passed amount.
@@ -38,19 +38,13 @@ class LogNode(object):
         """
         self.frequency += amount
 
-    def inc_start_frequency(self, amount=1):
-        """Increase the start frequency by passed amount.
-        Args:
-            amount (int): Amount to increase frequency by. Default is 1
-        """
-        self.start_frequency += amount
+    def inc_start_frequency(self):
+        """Increase the start frequency by 1."""
+        self.start_frequency += 1
 
-    def inc_end_frequency(self, amount=1):
-        """Increase the end frequency by passed amount.
-        Args:
-            amount (int): Amount to increase frequency by. Default is 1
-        """
-        self.end_frequency += amount
+    def inc_end_frequency(self):
+        """Increase the end frequency by 1."""
+        self.end_frequency += 1
 
     @property
     def is_start_event(self):
@@ -58,7 +52,7 @@ class LogNode(object):
         Returns:
             Boolean self.start_frequency != 0
         """
-        return bool(self.start_frequency)
+        return not bool(self.start_frequency)
 
     @property
     def is_end_event(self):
@@ -66,7 +60,7 @@ class LogNode(object):
         Returns:
             Boolean self.end_frequency != 0
         """
-        return bool(self.start_frequency)
+        return not bool(self.start_frequency)
 
     def __eq__(self, o):
         """Check for equality via ids."""

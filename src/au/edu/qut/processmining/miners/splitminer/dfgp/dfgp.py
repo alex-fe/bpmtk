@@ -1,13 +1,13 @@
 from collections import defaultdict
 
-from log.log import LogEdge, LogNode, SimpleLog
+from log.log import LogEdge, LogNode
 
 
 class DFGEdge(LogEdge):
     """docstring for DFGEdege."""
 
     def __init__(self, source, target, **kwargs):
-        super(DFGEdege, self).__init__(**kwargs)
+        super(DFGEdge, self).__init__(source, target, **kwargs)
         self.frequency = kwargs.get('frequency', 0)
 
     def increase_frequency(self, amount=1):
@@ -136,4 +136,3 @@ class DirectlyFollowGraphPlus(object):
                 self.dfgp[prev_event][event].increase_frequency(trace_freq)
                 prev_event = event
                 prev_node = node
-                
