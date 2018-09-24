@@ -17,11 +17,17 @@ class DFGEdge(LogEdge):
         """
         self.frequency += amount
 
+    @property
     def print_(self):
-        pass
+        return '{} > {} [{}]'.format(
+            self.source.code, self.target.code, self.frequency
+        )
 
     def __str__(self):
         return str(self.frequency)
+
+    def __hash__(self):
+        return hash(self.id)
 
     # def __eq__(self, o):
     #     if isinstance(o, DFGEdege):
@@ -37,15 +43,15 @@ class DFGNode(LogNode):
     pass
 
 
-class DirectlyFollowGraphPlus(object):
+class DirectlyFollowGraph(object):
 
     def __init__(self, log):
         self.log = log
         self.dfgp = defaultdict(dict)  # LOOK THIS UP
         self.nodes = defaultdict(dict)
         self.edges = set()
-        self.incoming_edges = defaultdict(set)
-        self.outgoing_edges = defaultdict(set)
+        self.incoming = defaultdict(set)
+        self.outgoing = defaultdict(set)
 
         self.events = log.events
         self.traces = log.traces
@@ -68,7 +74,7 @@ class DirectlyFollowGraphPlus(object):
         del self.nodes[code]
         removeable = {
             edge for edge in
-            self.incoming_edges[code].union(self.outgoing_edges[code])
+            self.incoming[code].union(self.outgoing[code])
         }
         for edge in removeable:
             self.remove_edge(edge, False)
@@ -81,9 +87,9 @@ class DirectlyFollowGraphPlus(object):
         source = edge.source.code
         target = edge.target.code
         self.edges.add(edge)
-        self.incoming_edges.get(target).add(edge)
-        self.outgoing_edges.get(source).add(edge)
-        self.dfgp[source].update(target, edge)
+        self.incoming[target].add(edge)
+        self.outgoing[source].add(edge)
+        self.dfgp[source].update({target: edge})
 
     def remove_edge(self, edge, safe):
         """Remove edge.
@@ -97,13 +103,13 @@ class DirectlyFollowGraphPlus(object):
         if (
             safe
             and (
-                len(self.incoming_edges[target]) == 1
-                or len(self.outgoing_edges[source]) == 1
+                len(self.incoming[target]) == 1
+                or len(self.outgoing[source]) == 1
             )
         ):
             return False
-        self.incoming_edges[target].remove(edge)
-        self.outgoing_edges[source].remove(edge)
+        self.incoming[target].remove(edge)
+        self.outgoing[source].remove(edge)
         self.edges.remove(edge)
         del self.dfgp[source][target]
         return True
