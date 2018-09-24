@@ -3,7 +3,7 @@ from collections import defaultdict
 from log.log import LogEdge, LogNode, SimpleLog
 
 
-class DFGEdege(LogEdge):
+class DFGEdge(LogEdge):
     """docstring for DFGEdege."""
 
     def __init__(self, source, target, **kwargs):
@@ -48,6 +48,7 @@ class DirectlyFollowGraphPlus(object):
         self.outgoing_edges = defaultdict(set)
 
         self.events = log.events
+        self.traces = log.traces
         self.start_code = log.start_code
         self.end_code = log.end_code
 
@@ -114,3 +115,25 @@ class DirectlyFollowGraphPlus(object):
 
         autogen_end = DFGNode(self.events[self.end_code], self.end_code)
         self.add_node(autogen_end)
+        for t, trace_freq in self.traces.items():
+            trace = t.split('::')
+            prev_event = self.start_code
+            prev_node = autogen_start
+            while trace:
+                event = trace.code  # DEBUG: not sure if correct
+                if event not in self.nodes:
+                    node = DFGNode(self.events[event], event)
+                    self.add_node(node)
+                else:
+                    node = self.nodes[event]
+                node.increase_frequency(trace_freq)
+                if (
+                    prev_event not in self.dfgp
+                    or event not in self.dfgp[prev_event]
+                ):
+                    edge = DFGEdge(prev_node, node)
+                    self.add_edge(edge)
+                self.dfgp[prev_event][event].increase_frequency(trace_freq)
+                prev_event = event
+                prev_node = node
+                
