@@ -6,8 +6,8 @@ from log.log import LogEdge, LogNode
 class TestLogEdge(unittest.TestCase):
 
     def test__eq__(self):
-        one = LogEdge()
-        two = LogEdge()
+        one = LogEdge(None, None)
+        two = LogEdge(None, None)
         self.assertNotEqual(one, two)
         self.assertEqual(one, one)
 
@@ -19,7 +19,7 @@ class TestLogNode(unittest.TestCase):
 
     def test__eq__(self):
         node2 = LogNode()
-        self.assertEqual(self.node. self.node)
+        self.assertEqual(self.node, self.node)
         self.assertNotEqual(self.node, node2)
 
     def test_increase_frequency(self):

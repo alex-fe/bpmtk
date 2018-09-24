@@ -60,7 +60,7 @@ class LogNode(object):
         Returns:
             Boolean self.end_frequency != 0
         """
-        return not bool(self.start_frequency)
+        return not bool(self.end_frequency)
 
     def __eq__(self, o):
         """Check for equality via ids."""
