@@ -1,4 +1,6 @@
-from log.log import LogEdge, LogNode
+from collections import defaultdict
+
+from log.log import LogEdge, LogNode, SimpleLog
 
 
 class DFGEdege(LogEdge):
@@ -31,8 +33,84 @@ class DFGEdege(LogEdge):
     #         return False
 
 
-
 class DFGNode(LogNode):
-    """docstring for ."""
-    def __init__(self, **kwargs):
-        super(DFGNode, self).__init__(**kwargs)
+    pass
+
+
+class DirectlyFollowGraphPlus(object):
+
+    def __init__(self, log):
+        self.log = log
+        self.dfgp = defaultdict(dict)  # LOOK THIS UP
+        self.nodes = defaultdict(dict)
+        self.edges = set()
+        self.incoming_edges = defaultdict(set)
+        self.outgoing_edges = defaultdict(set)
+
+        self.events = log.events
+        self.start_code = log.start_code
+        self.end_code = log.end_code
+
+    # Data management
+    def add_node(self, node):
+        """Add node to DFG.
+        Args:
+            node (DFGNode): Node to add to graph.
+        """
+        self.nodes.update({node.code: node})
+
+    def remove_node(self, code):
+        """Remove node from nodes and edges.
+        Args:
+            code (int): Code to find exiled node.
+        """
+        del self.nodes[code]
+        removeable = {
+            edge for edge in
+            self.incoming_edges[code].union(self.outgoing_edges[code])
+        }
+        for edge in removeable:
+            self.remove_edge(edge, False)
+
+    def add_edge(self, edge):
+        """Add node to DFG, noting direction.
+        Args:
+            edge (DFGEdge): Edge to add to graph.
+        """
+        source = edge.source.code
+        target = edge.target.code
+        self.edges.add(edge)
+        self.incoming_edges.get(target).add(edge)
+        self.outgoing_edges.get(source).add(edge)
+        self.dfgp[source].update(target, edge)
+
+    def remove_edge(self, edge, safe):
+        """Remove edge.
+        Args:
+
+        Returns:
+            Boolean
+        """
+        source = edge.source.code
+        target = edge.target.code
+        if (
+            safe
+            and (
+                len(self.incoming_edges[target]) == 1
+                or len(self.outgoing_edges[source]) == 1
+            )
+        ):
+            return False
+        self.incoming_edges[target].remove(edge)
+        self.outgoing_edges[source].remove(edge)
+        self.edges.remove(edge)
+        del self.dfgp[source][target]
+        return True
+
+    def build(self):
+        autogen_start = DFGNode(self.events[self.start_code], self.start_code)
+        self.add_node(autogen_start)
+        autogen_start.increase_frequency(len(self.log))
+
+        autogen_end = DFGNode(self.events[self.end_code], self.end_code)
+        self.add_node(autogen_end)
