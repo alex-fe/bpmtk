@@ -45,8 +45,15 @@ class DFGNode(LogNode):
 
 class DirectlyFollowGraph(object):
 
-    def __init__(self, log):
+    def __init__(self, log, parallelisms_first=False):
+        """
+        Args:
+            nodes (defaultdict): Node.code: node
+        """
         self.log = log
+        self.parallelisms_first = parallelisms_first
+        self.parallelisms_threshold = parallelisms_threshold
+
         self.dfgp = defaultdict(dict)  # LOOK THIS UP
         self.nodes = defaultdict(dict)
         self.edges = set()
@@ -142,3 +149,91 @@ class DirectlyFollowGraph(object):
                 self.dfgp[prev_event][event].increase_frequency(trace_freq)
                 prev_event = event
                 prev_node = node
+
+    def detect_loops_simple(self):
+        loops = set()
+        removable_loop_edges = set()
+        for edge in self.edges:
+            source = edge.source.code
+            target = edge.target.code
+            if source == target:
+                loops.add(edge)
+                removable_loop_edges.add(edge)
+        # we removed the loop length 1 edges, because later we will just mark
+        # them as self-loop activities
+        for edge in removable_loop_edges:
+            self.remove_edge(edge, False)
+        return loops
+
+    def detect_loops_extended(self, loops):
+        loops_extended = set()
+        for edge_1 in self.edges:
+            source = edge_1.source.code
+            target = edge_1.target.code
+            if (
+                edge_1 not in loops_extended
+                and source in self.dfgp[target]
+                and source not in loops
+                and target not in loops
+            ):
+                edge_2 = self.dfgp[target][source]
+                pattern = '::{0}::{1}::{0}::'
+                source_to_target_loop_pattern = pattern.format(source, target)
+                source_to_target_loop_freq = 0
+                target_to_source_loop_pattern = pattern.format(target, source)
+                target_to_source_loop_freq = 0
+                for trace, trace_freq in self.traces.items():
+                    source_to_target_loop_freq += (
+                        source_to_target_loop_pattern.count(trace) * trace_freq
+                    )
+                    target_to_source_loop_freq += (
+                        target_to_source_loop_pattern.count(trace) * trace_freq
+                    )
+                loop_to_score = (
+                    source_to_target_loop_freq + target_to_source_loop_freq
+                )
+            if loop_to_score:
+                loops_extended.add(edge_1, edge_2)
+        return loops_extended
+
+    def detect_parallelisns(self, loops, loops_extended):
+        parallelisms = defaultdict(set)
+        removable_edges = set()
+        for edge_1 in self.edges():
+            source = edge_1.source.code
+            target = edge_1.target.code
+            if self.parallelisms_first:
+                priority_check = edge_1 not in loops_extended
+            else:
+                priority_check = (
+                    edge_1 not in loops_extended
+                    and source not in loops
+                    and target not in loops
+                )
+            if (
+                source in self.dfgp[target]
+                and priority_check
+                and edge_1 not in removable_edges
+            ):
+                # this means: src || tgt is candidate parallelism
+                edge_2 = self.dfpg[target][source]
+
+                source_to_target_freq = edge_1.frequency
+                target_to_source_freq = edge_2.frequency
+                parallelism_score = float(
+                    (source_to_target_freq - target_to_source_freq)
+                    / (source_to_target_freq + target_to_source_freq)
+                )
+                if abs(parallelism_score) < self.parallelisms_threshold:
+                    # if parallelismScore is less than the threshold epslon,
+                    # we set src || tgt and vice-versa, and we remove edge_1
+                    # and edge_2
+                    parallelisms[source].add(target)
+                    parallelisms[target].add(source)
+                    removable_edges.add(edge_1, edge_2)
+                else:
+                    # or we remove the least frequent edge, edge_1 or edge_2
+                    if parallelism_score > 0:
+                        removable_edges.add(edge_2)
+                    else:
+                        removable_edges.add(edge_1)
