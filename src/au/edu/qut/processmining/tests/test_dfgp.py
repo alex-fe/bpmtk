@@ -1,6 +1,7 @@
-import re
+import random
 import unittest
 
+import utils as u
 from log.log import SimpleLog
 from miners.splitminer.dfgp.dfgp import DFGEdge, DFGNode, DirectlyFollowGraph
 
@@ -18,31 +19,38 @@ class TestDFGEdge(unittest.TestCase):
         self.edge.frequency = 12
         self.assertEqual(str(self.edge), '12')
 
-    # def test_print_(self):
-    #     """Assert print_ message is prints source to target with frequency in
-    #     correct arrangement."""
-    #     # assert first part is source code
-    #     self.assertEqual(
-    #         re.match('.+?(?= >)', self.edge.print_)[0], self.edge.source.code
-    #     )
-    #     # assert 2nd part is target code
-    #
-    #     # message =
-    #     # self.assertEqual(self.edge.print_,
-
 
 class TestDirectlyFollowGraph(unittest.TestCase):
 
     def setUp(self):
-        events = None
-        traces = {}
-        s_log = SimpleLog(traces, events, None)
-        s_log.start_code = None
-        s_log.end_code = None
+        node_codes = range(12)
+        self.events = {code: 'test_{}'.format(code) for code in node_codes}
+        self.traces = {
+            u.make_trace(*random.sample(node_codes, 3)): x for x in range(3)
+        }
+        s_log = SimpleLog(self.traces, self.events, None)
+        s_log.start_code = node_codes[0]
+        s_log.end_code = node_codes[-1]
         self.graph = DirectlyFollowGraph(s_log)
 
+    def _create_test_edge(
+        self, source=DFGNode(code='zero'), target=DFGNode(code='one')
+    ):
+        """Create two connected node.
+        Args:
+            source (DFGNode): Source node.
+            target (DFGNode): Target node.
+        Returns:
+            Source and target node, and connecting edge.
+        """
+        edge = DFGEdge(source, target)
+        self.graph.add_node(source)
+        self.graph.add_node(target)
+        self.graph.add_edge(edge)
+        return source, target, edge
+
     def test_add_node(self):
-        """Assert node was successfully added to dfgp's nodes."""
+        """Assert node was successfully added to graph's nodes."""
         self.assertFalse(self.graph.nodes)  # empty before adding node
 
         n = DFGNode(code='zero')
@@ -50,16 +58,10 @@ class TestDirectlyFollowGraph(unittest.TestCase):
         self.assertIs(n, self.graph.nodes.get(n.code))
 
     def test_add_edge(self):
-        """Assert edge was successfully added to dfgp's edges with respect to
+        """Assert edge was successfully added to graph's edges with respect to
         incoming/outgoing continuity."""
-        self.assertFalse(self.graph.edges)  # empty before adding node
-        self.assertFalse(self.graph.incoming)
-        self.assertFalse(self.graph.outgoing)
+        source, target, edge = self._create_test_edge()
 
-        source = DFGNode(code='zero')
-        target = DFGNode(code='one')
-        edge = DFGEdge(source, target)
-        self.graph.add_edge(edge)
         self.assertIn(edge, self.graph.edges)
         self.assertIn(edge.target.code, self.graph.incoming)
         self.assertIn(edge.source.code, self.graph.outgoing)
@@ -67,5 +69,48 @@ class TestDirectlyFollowGraph(unittest.TestCase):
             self.graph.dfgp[edge.source.code][edge.target.code], edge
         )
 
+    def test_remove_edge_safe(self):
+        """When marked safe and the conditions apply, edge is not removed."""
+        source, target, edge = self._create_test_edge()
+        self.assertFalse(self.graph.remove_edge(edge, True))
+
+    def test_remove_edge(self):
+        """Assert edge is cleanly removed from graph."""
+        source, target, edge = self._create_test_edge()
+        self.assertTrue(self.graph.remove_edge(edge, False))
+        self.assertNotIn(edge, self.graph.incoming[edge.target.code])
+        self.assertNotIn(edge, self.graph.outgoing[edge.source.code])
+        self.assertNotIn(edge, self.graph.edges)
+        self.assertNotIn(edge.target.code, self.graph.dfgp[edge.source.code])
+
     def test_remove_node(self):
-        pass
+        """Assert node was successfully removed from graph's nodes as well as
+        extending edges."""
+        source, target, edge = self._create_test_edge()
+
+        self.graph.remove_node(target.code)
+        self.assertNotIn(target.code, self.graph.nodes)
+
+    def test_build_edges(self):
+        """Assert that graph is built correctly with regards to edge ordering.
+        """
+        self.graph.build()
+        for source, edges in self.graph.dfgp.items():
+            for target, edge in edges.items():
+                self.assertEqual(source, edge.source.code)
+                self.assertEqual(target, edge.target.code)
+
+    def test_build_follow_traces(self):
+        """Assert graph follows the path indicated by the traces."""
+        self.graph.build()
+        for t in self.traces:
+            trace_list = u.t_split(t)
+            while len(trace_list) > 1:
+                start = int(trace_list.pop(0))
+                target = int(trace_list[0])
+                self.assertIn(start, self.graph.dfgp)
+                self.assertIn(target, self.graph.dfgp[start])
+
+    def test_build_frequencies(self):
+        self.graph.build()
+        # TODO: write test

@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import utils as u
 from log.log import LogEdge, LogNode
 
 
@@ -29,6 +30,9 @@ class DFGEdge(LogEdge):
     def __hash__(self):
         return hash(self.id)
 
+    def __repr__(self):
+        return 'DFGEdge: {} > {}'.format(self.source.code, self.target.code)
+
     # def __eq__(self, o):
     #     if isinstance(o, DFGEdege):
     #         if self.frequency == o.frequency:
@@ -52,7 +56,7 @@ class DirectlyFollowGraph(object):
         """
         self.log = log
         self.parallelisms_first = parallelisms_first
-        self.parallelisms_threshold = parallelisms_threshold
+        self.parallelisms_threshold = 0
 
         self.dfgp = defaultdict(dict)  # LOOK THIS UP
         self.nodes = defaultdict(dict)
@@ -71,7 +75,7 @@ class DirectlyFollowGraph(object):
         Args:
             node (DFGNode): Node to add to graph.
         """
-        self.nodes.update({node.code: node})
+        self.nodes[node.code] = node
 
     def remove_node(self, code):
         """Remove node from nodes and edges.
@@ -124,16 +128,15 @@ class DirectlyFollowGraph(object):
     def build(self):
         autogen_start = DFGNode(self.events[self.start_code], self.start_code)
         self.add_node(autogen_start)
-        autogen_start.increase_frequency(len(self.log))
+        autogen_start.increase_frequency(self.log.size)
 
         autogen_end = DFGNode(self.events[self.end_code], self.end_code)
         self.add_node(autogen_end)
         for t, trace_freq in self.traces.items():
-            trace = t.split('::')
             prev_event = self.start_code
             prev_node = autogen_start
-            while trace:
-                event = trace.code  # DEBUG: not sure if correct
+            for trace_code in u.t_split(t):
+                event = int(trace_code)  # DEBUG: not sure if correct
                 if event not in self.nodes:
                     node = DFGNode(self.events[event], event)
                     self.add_node(node)
@@ -177,10 +180,9 @@ class DirectlyFollowGraph(object):
                 and target not in loops
             ):
                 edge_2 = self.dfgp[target][source]
-                pattern = '::{0}::{1}::{0}::'
-                source_to_target_loop_pattern = pattern.format(source, target)
+                source_to_target_loop_pattern = u.make_trace(source, target, source)
                 source_to_target_loop_freq = 0
-                target_to_source_loop_pattern = pattern.format(target, source)
+                target_to_source_loop_pattern = u.make_trace(target, source, target)
                 target_to_source_loop_freq = 0
                 for trace, trace_freq in self.traces.items():
                     source_to_target_loop_freq += (

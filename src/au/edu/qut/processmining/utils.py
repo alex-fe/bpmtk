@@ -8,7 +8,7 @@ def make_trace(*args):
     Returns:
         Trace string.
     """
-    return '::{}::'.format('::'.join(args))
+    return '::{}::'.format('::'.join(str(x) for x in args))
 
 
 def t_split(trace):
