@@ -33,14 +33,24 @@ class DFGEdge(LogEdge):
     def __repr__(self):
         return 'DFGEdge: {} > {}'.format(self.source.code, self.target.code)
 
-    # def __eq__(self, o):
-    #     if isinstance(o, DFGEdege):
-    #         if self.frequency == o.frequency:
-    #             pass
-    #         else:
-    #
-    #     else:
-    #         return False
+    def __lt__(self, o):
+        """Compare a DFGEdge  for four cases: object type, frequency,
+        source code, target code.
+        Args:
+            o: Agent to compare against.
+        Returns:
+            Comparison.
+        """
+        if isinstance(o, DFGEdge):
+            if self.frequency == o.frequency:
+                if self.source.code == o.source.code:
+                    return self.target.code < o.target.code
+                else:
+                    return self.source.code < o.source.code
+            else:
+                return self.frequency < o.frequency
+        else:
+            return -1
 
 
 class DFGNode(LogNode):
