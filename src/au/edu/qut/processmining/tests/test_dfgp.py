@@ -34,7 +34,7 @@ class TestDirectlyFollowGraph(unittest.TestCase):
         self.graph = DirectlyFollowGraph(s_log)
 
     def _create_test_edge(
-        self, source=DFGNode(code='zero'), target=DFGNode(code='one')
+        self, source=DFGNode(code='0'), target=DFGNode(code='1')
     ):
         """Create two connected node.
         Args:
@@ -111,6 +111,27 @@ class TestDirectlyFollowGraph(unittest.TestCase):
                 self.assertIn(start, self.graph.dfgp)
                 self.assertIn(target, self.graph.dfgp[start])
 
+    @unittest.skip('Not finished')
     def test_build_frequencies(self):
         self.graph.build()
-        # TODO: write test
+
+    def test_detect_simple_loops(self):
+        """Assert that all loops of length one (e.g. node to same node) are
+        found."""
+        node = DFGNode(code='0')
+        self._create_test_edge(node, node)
+        edge = list(self.graph.edges)[0]
+        self.assertEqual(edge.source.code, edge.target.code)  # Assert loop
+        self.assertIn(edge.source.code, self.graph.dfgp[edge.source.code])
+
+        self.graph.detect_loops_simple()
+        self.assertFalse(self.graph.edges)
+        self.assertNotIn(edge.source.code, self.graph.dfgp[edge.source.code])
+
+    @unittest.skip('Not finished')
+    def test_loops_extended(self):
+        pass
+
+    @unittest.skip('Not finished')
+    def test_detect_parallelisms(self):
+        pass

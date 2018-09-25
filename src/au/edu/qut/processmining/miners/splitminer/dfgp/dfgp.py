@@ -154,6 +154,10 @@ class DirectlyFollowGraph(object):
                 prev_node = node
 
     def detect_loops_simple(self):
+        """Find loops of length 1 and remove.
+        Returns:
+            Set of loops.
+        """
         loops = set()
         removable_loop_edges = set()
         for edge in self.edges:
@@ -198,7 +202,7 @@ class DirectlyFollowGraph(object):
                 loops_extended.add(edge_1, edge_2)
         return loops_extended
 
-    def detect_parallelisns(self, loops, loops_extended):
+    def detect_parallelisms(self, loops, loops_extended):
         parallelisms = defaultdict(set)
         removable_edges = set()
         for edge_1 in self.edges():
