@@ -122,10 +122,10 @@ class DirectlyFollowGraph(object):
         source = edge.source.code
         target = edge.target.code
         if (
-            safe
-            and (
-                len(self.incoming[target]) == 1
-                or len(self.outgoing[source]) == 1
+            safe and
+            (
+                len(self.incoming[target]) == 1 or
+                len(self.outgoing[source]) == 1
             )
         ):
             return False
@@ -154,8 +154,8 @@ class DirectlyFollowGraph(object):
                     node = self.nodes[event]
                 node.increase_frequency(trace_freq)
                 if (
-                    prev_event not in self.dfgp
-                    or event not in self.dfgp[prev_event]
+                    prev_event not in self.dfgp or
+                    event not in self.dfgp[prev_event]
                 ):
                     edge = DFGEdge(prev_node, node)
                     self.add_edge(edge)
@@ -188,25 +188,25 @@ class DirectlyFollowGraph(object):
             source = edge_1.source.code
             target = edge_1.target.code
             if (
-                edge_1 not in loops_extended
-                and source in self.dfgp[target]
-                and source not in loops
-                and target not in loops
+                edge_1 not in loops_extended and
+                source in self.dfgp[target] and
+                source not in loops and
+                target not in loops
             ):
                 edge_2 = self.dfgp[target][source]
-                source_to_target_loop_pattern = u.make_trace(source, target, source)
-                source_to_target_loop_freq = 0
-                target_to_source_loop_pattern = u.make_trace(target, source, target)
-                target_to_source_loop_freq = 0
+                source_2_target_lp_pttrn = u.make_trace(source, target, source)
+                target_2_source_lp_pttrn = u.make_trace(target, source, target)
+                source_2_target_lp_freq = 0
+                target_2_source_lp_freq = 0
                 for trace, trace_freq in self.traces.items():
-                    source_to_target_loop_freq += (
-                        source_to_target_loop_pattern.count(trace) * trace_freq
+                    source_2_target_lp_freq += (
+                        source_2_target_lp_pttrn.count(trace) * trace_freq
                     )
-                    target_to_source_loop_freq += (
-                        target_to_source_loop_pattern.count(trace) * trace_freq
+                    target_2_source_lp_freq += (
+                        target_2_source_lp_pttrn.count(trace) * trace_freq
                     )
                 loop_to_score = (
-                    source_to_target_loop_freq + target_to_source_loop_freq
+                    source_2_target_lp_freq + target_2_source_lp_freq
                 )
             if loop_to_score:
                 loops_extended.add(edge_1, edge_2)
@@ -222,14 +222,14 @@ class DirectlyFollowGraph(object):
                 priority_check = edge_1 not in loops_extended
             else:
                 priority_check = (
-                    edge_1 not in loops_extended
-                    and source not in loops
-                    and target not in loops
+                    edge_1 not in loops_extended and
+                    source not in loops and
+                    target not in loops
                 )
             if (
-                source in self.dfgp[target]
-                and priority_check
-                and edge_1 not in removable_edges
+                source in self.dfgp[target] and
+                priority_check and
+                edge_1 not in removable_edges
             ):
                 # this means: src || tgt is candidate parallelism
                 edge_2 = self.dfpg[target][source]
@@ -237,8 +237,8 @@ class DirectlyFollowGraph(object):
                 source_to_target_freq = edge_1.frequency
                 target_to_source_freq = edge_2.frequency
                 parallelism_score = float(
-                    (source_to_target_freq - target_to_source_freq)
-                    / (source_to_target_freq + target_to_source_freq)
+                    (source_to_target_freq - target_to_source_freq) /
+                    (source_to_target_freq + target_to_source_freq)
                 )
                 if abs(parallelism_score) < self.parallelisms_threshold:
                     # if parallelismScore is less than the threshold epslon,

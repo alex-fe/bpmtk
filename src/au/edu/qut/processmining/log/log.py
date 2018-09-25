@@ -73,9 +73,14 @@ class LogNode(object):
 class SimpleLog(object):
 
     def __init__(self, traces, events, xlog):
+        """
+        Args:
+            traces (dict): Each trace is a string associated to its frequency
+            events (dict) Code of the event to its original name; int: str
+        """
         self.events = events
         self.traces = traces
-        self.size = sum(trace_freq for trace_freq in traces.values())
+        self.size = sum(traces.values())
         self.xlog = xlog
         self.total_events = -1
         self.longest_trace = -1
@@ -87,15 +92,8 @@ class SimpleLog(object):
 
     @property
     def distintic_events(self):
-        return len(self.traces) - 2
+        return len(self.events) - 2
 
     @property
     def avg_trace_length(self):
         return self.total_events / self.size
-
-
-class LogParser(object):
-    """docstring for LogParser."""
-    def __init__(self, arg):
-        super(LogParser, self).__init__()
-        self.arg = arg

@@ -106,8 +106,8 @@ class Filter(object):
         # cls.best_edges.remove(None)
         for edge in graph.edges:
             if (
-                edge not in cls.best_edges
-                and edge.frequency >= cls.filter_threshold
+                edge not in cls.best_edges and
+                edge.frequency >= cls.filter_threshold
             ):
                 graph.remove_edge(edge, False)
 
