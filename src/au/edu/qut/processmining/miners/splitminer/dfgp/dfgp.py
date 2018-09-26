@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import utils as u
+from filters import Filter
 from log.log import LogEdge, LogNode
 
 
@@ -59,7 +60,9 @@ class DFGNode(LogNode):
 
 class DirectlyFollowGraph(object):
 
-    def __init__(self, log, parallelisms_first=False):
+    def __init__(
+        self, log, parallelisms_first, percentile_frequency_threshold
+    ):
         """
         Args:
             nodes (defaultdict): Node.code: node
@@ -67,6 +70,7 @@ class DirectlyFollowGraph(object):
         self.log = log
         self.parallelisms_first = parallelisms_first
         self.parallelisms_threshold = 0
+        self.percentile_frequency_threshold = percentile_frequency_threshold
 
         self.dfgp = defaultdict(dict)  # LOOK THIS UP
         self.nodes = defaultdict(dict)
@@ -253,3 +257,32 @@ class DirectlyFollowGraph(object):
                         removable_edges.add(edge_2)
                     else:
                         removable_edges.add(edge_1)
+
+    def build_dfgp(self, filter_type):
+        """Create DFGP based on internal settings. Creation ordering: build,
+        find loops and parallelisms, and the filter.
+        Args:
+            filter_type (str): Toggle how dfgp is filtered.
+        """
+        # print settings
+        print(
+            "DFGP - settings > {}:{}:{}"
+            .format(
+                self.parallelisms_threshold,
+                self.percentile_frequency_threshold,
+                filter_type
+            )
+        )
+        # build
+        self.build()
+        loops = self.detect_loops_simple()
+        loops_extended = self.detect_loops_extended(loops)
+        self.detect_parallelisms(loops, loops_extended)
+
+        # filter
+        if filter_type == 'FWG':
+            Filter.with_guarantees(self, self.percentile_frequency_threshold)
+        elif filter_type == 'WTH':
+            Filter.with_threshold(self, self.percentile_frequency_threshold)
+        elif filter_type == 'STD':
+            Filter.standard(self)
