@@ -55,7 +55,7 @@ class ProcessMiner(object):
         for caseid in self.log:
             for i in range(len(self.log[caseid]) - 1):
                 ai = self.log[caseid][i][0]
-                aj = self.log[caseid][i+1][0]
+                aj = self.log[caseid][i + 1][0]
                 F[ai][aj] += 1
         return F
 

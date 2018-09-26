@@ -18,7 +18,7 @@ class Filter(object):
 
     @classmethod
     def _compute_filter_threshold(cls, percentile_frequency_threshold):
-        """
+        """Compute the filter threshold by comparing b
         Args:
             percentile_frequency_threshold
         """
@@ -39,6 +39,14 @@ class Filter(object):
 
     @staticmethod
     def _directionals(graph, forward):
+        """Switch helper method for backwards and forwards traversing
+        functions.
+        Args:
+            graph (DirectlyFollowGraph): Specified graph.
+            forward (bool): Denote needed direction variables.
+        Return:
+            Traversal variables.
+        """
         if forward:
             return graph.start_code, graph.end_code, graph.outgoing, 'source'
         else:
@@ -46,6 +54,14 @@ class Filter(object):
 
     @classmethod
     def _traverse(cls, graph, forward, use_capacity):
+        """Reinterpretation of discorver best edge algorithm.
+        Args:
+            graph (DirectlyFollowGraph): Specified graph.
+            forward (bool): Denote needed direction variables.
+            use_capacity (bool): Indicated whether to calculate capacities.
+        Return:
+            Dict of edges.
+        """
         start, end, direction, directional = cls._directionals(graph, forward)
         node_set = set(graph.nodes.keys())
         max_capacity = {node: 0 for node in node_set}
@@ -60,16 +76,21 @@ class Filter(object):
             for edge in direction[n1]:
                 n2 = getattr(edge, directional).code
                 if use_capacity:
-                    max_cap = edge.frequency if cap > edge.frequency else cap
+                    max_cap = min(edge.frequency, cap)
                     if max_cap > max_capacity[n2]:
                         max_capacity[n2] = max_cap
                         best[n2] = edge
                         if n2 not in cls.to_visit:
                             unvisited.add(n2)
                 if n2 in unvisited:
-                    cls.to_visit.append(n2)
                     unvisited.remove(n2)
+                    cls.to_visit.append(n2)
         return best
+
+    @classmethod
+    def explore_and_remove(cls, graph):
+        cls._traverse(graph, True, False)
+        cls._traverse(graph, False, False)
 
     @classmethod
     def standard(cls, graph):
@@ -78,6 +99,7 @@ class Filter(object):
             graph.remove_edge(edge)
         frequency_ordered_edges = sorted(cls.best_edges, reverse=True)
         cls._reapply_edges(graph, frequency_ordered_edges)
+        cls.explore_and_remove(graph)
 
     @classmethod
     def with_threshold(cls, graph, percentile_frequency_threshold):
@@ -92,6 +114,7 @@ class Filter(object):
                 ordered_most_frequent_edges.add(edge)
             graph.remove_edge(edge, False)
         cls._reapply_edges(graph, ordered_most_frequent_edges, True)
+        cls.explore_and_remove(graph)
 
     @classmethod
     def with_guarantees(cls, graph, percentile_frequency_threshold):
@@ -110,8 +133,3 @@ class Filter(object):
                 edge.frequency >= cls.filter_threshold
             ):
                 graph.remove_edge(edge, False)
-
-    @classmethod
-    def explore_and_remove(cls, graph):
-        cls._traverse(graph, True, False)
-        cls._traverse(graph, False, False)

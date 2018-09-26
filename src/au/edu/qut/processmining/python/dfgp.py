@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import bpmn_python as bpmn
+
 import utils as u
 from filters import Filter
 from log.log import LogEdge, LogNode
@@ -286,3 +288,6 @@ class DirectlyFollowGraph(object):
             Filter.with_threshold(self, self.percentile_frequency_threshold)
         elif filter_type == 'STD':
             Filter.standard(self)
+
+    def convert_to_BPMNDiagram(self):
+        diagram = None
