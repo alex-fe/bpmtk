@@ -1,6 +1,6 @@
 import sys
 
-# from dfgp.dfgp import DirectlyFollowGraph
+from .dfgp import DirectlyFollowGraph
 
 
 class SplitMiner(object):
@@ -22,15 +22,24 @@ class SplitMiner(object):
 
     def __init__(self, event_log):
         self.log = event_log
+        self.dfgp = DirectlyFollowGraph(event_log, None)  # NOTE: missing arugments
 
-    def trasform(self):
-        gate_counter = -sys.maxsize
-        # we retrieve the starting BPMN diagram from the DFGP, it is a DFGP
-        # with start and end events, but no gateways
-        bpmn_diagram = self.dfgp.convert_to_BPMNDiagram()
-        # firstly we generate the split gateways. There are only two events in
-        # the initial BPMN diagram, one is the START and for exclusion the
-        # second is the END
+    def transform(self, filter_type):
+        # print(
+        #     "DFGP - settings > {}:{}:{}"
+        #     .format(
+        #         self.parallelisms_threshold,
+        #         self.percentile_frequency_threshold,
+        #         filter_type
+        #     )
+        # )
+        self.dfgp.construct()
+        self.dfgp.filter(filter_type)
+        self.dfgp.detect_loops()
+        self.dfgp.split_gateways()
+        self.dfgp.join_gateways()
+        self.dfgp.remove_or_gates()
+
 
 
     # def build_directly_follow_graph(self):
