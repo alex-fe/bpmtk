@@ -4,6 +4,8 @@ and graph/LogNode.java
 """
 import uuid
 
+import utils as u
+
 
 class LogEdge(object):
 
@@ -97,3 +99,18 @@ class SimpleLog(object):
     @property
     def avg_trace_length(self):
         return self.total_events / self.size
+
+
+class LogParser(object):
+    STARTCODE = 0
+    ENDCODE = -1
+
+    @classmethod
+    def to_log(cls, input_log):
+        events = {cls.STARTCODE, "autogen-start", cls.ENDCODE, "autogen-end"}
+        traces = {}
+        labels = set
+        for i_index in range(len(input_log)):
+            trace = input_log[i_index]
+            for e_index in range(len(trace)):
+                event =

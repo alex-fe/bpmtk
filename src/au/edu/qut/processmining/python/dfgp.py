@@ -1,10 +1,11 @@
-from collections import defaultdict
-
-import bpmn_python as bpmn
+import logging
+from collections import defaultdict, deque
+# import bpmn_python as bpmn
 
 import utils as u
+# from .bpmn import `BusinessProcessModelNotation`
+from log import LogEdge, LogNode
 from filters import Filter
-from log.log import LogEdge, LogNode
 
 
 class DFGEdge(LogEdge):
@@ -63,7 +64,8 @@ class DFGNode(LogNode):
 class DirectlyFollowGraph(object):
 
     def __init__(
-        self, log, parallelisms_first, percentile_frequency_threshold
+        self, log, parallelisms_first, parallelisms_threshold,
+        percentile_frequency_threshold
     ):
         """
         Args:
@@ -71,7 +73,7 @@ class DirectlyFollowGraph(object):
         """
         self.log = log
         self.parallelisms_first = parallelisms_first
-        self.parallelisms_threshold = 0
+        self.parallelisms_threshold = parallelisms_threshold
         self.percentile_frequency_threshold = percentile_frequency_threshold
 
         self.dfgp = defaultdict(dict)  # LOOK THIS UP
@@ -80,8 +82,8 @@ class DirectlyFollowGraph(object):
         self.incoming = defaultdict(set)
         self.outgoing = defaultdict(set)
 
-        self.events = log.events
-        self.traces = log.traces
+        self.events = log['events']
+        self.traces = log['traces']
         self.start_code = log.start_code
         self.end_code = log.end_code
 
@@ -141,34 +143,7 @@ class DirectlyFollowGraph(object):
         del self.dfgp[source][target]
         return True
 
-    def build(self):
-        autogen_start = DFGNode(self.events[self.start_code], self.start_code)
-        self.add_node(autogen_start)
-        autogen_start.increase_frequency(self.log.size)
-
-        autogen_end = DFGNode(self.events[self.end_code], self.end_code)
-        self.add_node(autogen_end)
-        for t, trace_freq in self.traces.items():
-            prev_event = self.start_code
-            prev_node = autogen_start
-            for trace_code in u.t_split(t):
-                event = int(trace_code)  # DEBUG: not sure if correct
-                if event not in self.nodes:
-                    node = DFGNode(self.events[event], event)
-                    self.add_node(node)
-                else:
-                    node = self.nodes[event]
-                node.increase_frequency(trace_freq)
-                if (
-                    prev_event not in self.dfgp or
-                    event not in self.dfgp[prev_event]
-                ):
-                    edge = DFGEdge(prev_node, node)
-                    self.add_edge(edge)
-                self.dfgp[prev_event][event].increase_frequency(trace_freq)
-                prev_event = event
-                prev_node = node
-
+    # supplimentary
     def detect_loops_simple(self):
         """Find loops of length 1 and remove.
         Returns:
@@ -260,27 +235,82 @@ class DirectlyFollowGraph(object):
                     else:
                         removable_edges.add(edge_1)
 
-    def build_dfgp(self, filter_type):
-        """Create DFGP based on internal settings. Creation ordering: build,
-        find loops and parallelisms, and the filter.
-        Args:
-            filter_type (str): Toggle how dfgp is filtered.
+    def xor_splits(self):
         """
-        # print settings
-        print(
-            "DFGP - settings > {}:{}:{}"
-            .format(
-                self.parallelisms_threshold,
-                self.percentile_frequency_threshold,
-                filter_type
-            )
-        )
-        # build
-        self.build()
+        while X = ∅
+            Create a set X ← ∅;
+            for s1 ∈ S do
+                Create a set Cu ← C[s1];
+                for s2 ∈ S do
+                    if F[s1] = F[s2] ∧ s1 = s2 then
+                        add s2 to X;
+                        Cu ← Cu ∪ C[s2];
+                    if X = ∅ then
+                        add s1 to X;
+                        break;
+            if X = ∅ then
+                Create an XOR gateway g×;
+                add g× to G×;
+                for s ∈ X do
+                   add an edge from g× to s;
+                   remove s from S; add g× to S; F[g×] ← F[s1];
+                   C[g×] ← C
+    """
+        to_visit = deque(self.start_code)
+        visited = set()
+    # while to_visit:
+    #     entry = to_visit.leftpop()
+    #     visited.add(entry)
+    #     for s1 in successors:
+    #         cu = c[s1]
+    #         if F[s] == F[s] and s1 != s2:
+    #             to_visit.add(s2)
+    #             # Cu ← Cu ∪ C[s2];
+    #         if not to_visit:
+    #             to_visit.add(s1)
+    #             break
+    #     if not to_visit:
+    #         pass
+
+    # main
+    def build(self):
+        autogen_start = DFGNode(self.events[self.start_code], self.start_code)
+        self.add_node(autogen_start)
+        autogen_start.increase_frequency(self.log.size)
+
+        autogen_end = DFGNode(self.events[self.end_code], self.end_code)
+        self.add_node(autogen_end)
+        for t, trace_freq in self.traces.items():
+            prev_event = self.start_code
+            prev_node = autogen_start
+            for trace_code in u.t_split(t):
+                event = int(trace_code)  # DEBUG: not sure if correct
+                if event not in self.nodes:
+                    node = DFGNode(self.events[event], event)
+                    self.add_node(node)
+                else:
+                    node = self.nodes[event]
+                node.increase_frequency(trace_freq)
+                if (
+                    prev_event not in self.dfgp or
+                    event not in self.dfgp[prev_event]
+                ):
+                    edge = DFGEdge(prev_node, node)
+                    self.add_edge(edge)
+                self.dfgp[prev_event][event].increase_frequency(trace_freq)
+                prev_event = event
+                prev_node = node
+
+    def detect_loops(self):
         loops = self.detect_loops_simple()
         loops_extended = self.detect_loops_extended(loops)
         self.detect_parallelisms(loops, loops_extended)
 
+    def filter(self, filter_type):
+        """
+        Args:
+            filter_type (str): Toggle how dfgp is filtered.
+        """
         # filter
         if filter_type == 'FWG':
             Filter.with_guarantees(self, self.percentile_frequency_threshold)
@@ -289,5 +319,7 @@ class DirectlyFollowGraph(object):
         elif filter_type == 'STD':
             Filter.standard(self)
 
-    def convert_to_BPMNDiagram(self):
-        diagram = None
+    def discover_splits(self):
+        for task in tasks:
+            if task in self.incoming:
+                pass

@@ -54,7 +54,7 @@ class Filter(object):
 
     @classmethod
     def _traverse(cls, graph, forward, use_capacity):
-        """Reinterpretation of discorver best edge algorithm.
+        """Reinterpretation of discover best edge algorithm.
         Args:
             graph (DirectlyFollowGraph): Specified graph.
             forward (bool): Denote needed direction variables.

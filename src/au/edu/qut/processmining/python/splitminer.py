@@ -1,6 +1,7 @@
+import logging
 import sys
 
-from .dfgp import DirectlyFollowGraph
+from dfgp import DirectlyFollowGraph
 
 
 class SplitMiner(object):
@@ -20,9 +21,9 @@ class SplitMiner(object):
     6) Find OR-joins and remove where possible.
     """
 
-    def __init__(self, event_log):
+    def __init__(self, event_log, *args):
         self.log = event_log
-        self.dfgp = DirectlyFollowGraph(event_log, None)  # NOTE: missing arugments
+        self.dfgp = DirectlyFollowGraph(event_log, *args)
 
     def transform(self, filter_type):
         # print(
@@ -34,11 +35,17 @@ class SplitMiner(object):
         #     )
         # )
         self.dfgp.construct()
+        logging.info('Created graph.')
         self.dfgp.filter(filter_type)
+        logging.info('Filtered')
         self.dfgp.detect_loops()
-        self.dfgp.split_gateways()
+        logging.info('Loops detected')
+        self.dfgp.discover_splits()
+        logging.info('Find splits')
         self.dfgp.join_gateways()
+        logging.info('Gateways joined')
         self.dfgp.remove_or_gates()
+        logging.info('Or gates removed')
 
 
 
